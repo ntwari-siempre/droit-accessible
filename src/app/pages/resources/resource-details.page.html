@@ -1,0 +1,52 @@
+<div class="page-heading reveal reveal-one">
+    <p class="eyebrow">Fiches pratiques</p>
+    <h1>{{ resource?.title || 'Fiche pratique' }}</h1>
+    <p>Une lecture complète, claire et accessible pour mieux comprendre vos droits.</p>
+</div>
+
+@if (loading) {
+<div class="panel loading-state"><span class="loading-spinner"></span><p>Chargement de la fiche...</p></div>
+}
+
+@if (error) {
+<div class="panel empty-state"><span>▤</span><h2>Fiche indisponible</h2><p>{{ error }}</p><a class="outline-button" routerLink="/resources">Retour aux fiches pratiques <span>→</span></a></div>
+}
+
+@if (!loading && !error && resource) {
+
+<article class="panel resource-reading reveal reveal-two">
+
+    <div class="resource-top">
+        <span class="resource-icon" [class]="resource.color">▤</span>
+        <span class="read-time">{{ resource.readTime }} de lecture</span>
+    </div>
+
+    <span class="resource-category">{{ resource.category }}</span>
+
+    <h2 class="reading-title">{{ resource.title }}</h2>
+
+    <div class="reading-body">
+
+        @for (paragraph of paragraphs; track $index) {
+
+        <p>{{ paragraph }}</p>
+
+        }
+
+    </div>
+
+    <div class="visibility-note"><span>✓</span>
+        <p><strong>Besoin d'aide sur ce sujet ?</strong>
+            <small>Choisissez un professionnel dans l'annuaire et envoyez une demande de rendez-vous — vous recevrez un
+                code de suivi pour dialoguer avec lui, sans créer de compte.</small>
+        </p>
+    </div>
+
+    <div class="reading-actions">
+        <a class="primary-button" routerLink="/professionals">Trouver un professionnel <span>→</span></a>
+        <a class="text-button" routerLink="/resources">Toutes les fiches pratiques <span>←</span></a>
+    </div>
+
+</article>
+
+}

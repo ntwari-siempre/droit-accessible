@@ -1,0 +1,920 @@
+
+<!-- ====================================================== -->
+<!-- EN-TÊTE -->
+<!-- ====================================================== -->
+
+<div class="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
+
+    <div>
+
+        <p class="mb-1 text-xs font-bold uppercase tracking-wider text-green-700">
+            Administration
+        </p>
+
+        <h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">
+            Espace professionnel
+        </h1>
+
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+            Gérez votre activité et votre visibilité auprès des demandeurs
+            de justice.
+        </p>
+
+    </div>
+
+
+    <span
+        class="inline-flex w-fit items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
+
+        <span class="h-2 w-2 rounded-full bg-green-600"></span>
+
+        Session active
+
+    </span>
+
+</div>
+
+
+<!-- ====================================================== -->
+<!-- ONGLETS -->
+<!-- ====================================================== -->
+
+<div class="mb-6 flex overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+
+    <!-- VUE D'ENSEMBLE -->
+
+    <button type="button" (click)="tab = 'overview'" [class.border-green-700]="tab === 'overview'"
+        [class.text-green-700]="tab === 'overview'" [class.bg-green-50]="tab === 'overview'"
+        [class.border-transparent]="tab !== 'overview'" [class.text-gray-600]="tab !== 'overview'"
+        class="cursor-pointer whitespace-nowrap border-b-2 px-5 py-3.5 text-sm font-semibold transition hover:bg-gray-50">
+
+        Vue d'ensemble
+
+    </button>
+
+
+    <!-- PROFESSIONNELS -->
+
+    <button type="button" (click)="selectProfessionalsTab()" [class.border-green-700]="tab === 'professionals'"
+        [class.text-green-700]="tab === 'professionals'" [class.bg-green-50]="tab === 'professionals'"
+        [class.border-transparent]="tab !== 'professionals'" [class.text-gray-600]="tab !== 'professionals'"
+        class="flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-5 py-3.5 text-sm font-semibold transition hover:bg-gray-50">
+
+        Professionnels
+
+        <span
+            class="inline-flex min-w-6 items-center justify-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-600">
+
+            {{ professionals.length }}
+
+        </span>
+
+    </button>
+
+</div>
+
+
+<!-- ====================================================== -->
+<!-- VUE D'ENSEMBLE -->
+<!-- ====================================================== -->
+
+@if (tab === 'overview') {
+
+<div class="space-y-6">
+
+
+    <!-- ================================================== -->
+    <!-- STATISTIQUES -->
+    <!-- ================================================== -->
+
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+
+
+        <!-- PROFESSIONNELS -->
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+
+            <div class="flex items-start justify-between">
+
+                <div>
+
+                    <p class="text-sm font-medium text-gray-500">
+                        Professionnels inscrits
+                    </p>
+
+                    <strong class="mt-2 block text-3xl font-bold text-gray-900">
+                        {{ professionals.length }}
+                    </strong>
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Total enregistré
+                    </p>
+
+                </div>
+
+
+                <span
+                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-xl font-bold text-orange-600">
+
+                    ◎
+
+                </span>
+
+            </div>
+
+        </article>
+
+
+        <!-- PROFILS VÉRIFIÉS -->
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+
+            <div class="flex items-start justify-between">
+
+                <div>
+
+                    <p class="text-sm font-medium text-gray-500">
+                        Profils vérifiés
+                    </p>
+
+                    <strong class="mt-2 block text-3xl font-bold text-gray-900">
+                        {{ verifiedProfessionalsCount }}
+                    </strong>
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Profils approuvés
+                    </p>
+
+                </div>
+
+
+                <span
+                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-xl font-bold text-green-700">
+
+                    ✓
+
+                </span>
+
+            </div>
+
+        </article>
+
+
+        <!-- DEMANDES EN ATTENTE -->
+
+        <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+
+            <div class="flex items-start justify-between">
+
+                <div>
+
+                    <p class="text-sm font-medium text-gray-500">
+                        Demandes en attente
+                    </p>
+
+                    <strong class="mt-2 block text-3xl font-bold text-gray-900">
+                        {{ pendingProfessionalsCount }}
+                    </strong>
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        À traiter
+                    </p>
+
+                </div>
+
+
+                <span
+                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-50 text-xl font-bold text-yellow-600">
+
+                    ◷
+
+                </span>
+
+            </div>
+
+        </article>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- FORMULAIRE D'INSCRIPTION -->
+    <!-- ================================================== -->
+
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+        <div class="border-b border-gray-200 px-5 py-5 sm:px-6">
+
+            <h2 class="text-lg font-bold text-gray-900">
+                Inscription d'un professionnel
+            </h2>
+
+            <p class="mt-1 text-sm text-gray-500">
+                Ajoutez un nouveau professionnel à la plateforme.
+            </p>
+
+        </div>
+
+
+        <div class="p-5 sm:p-6">
+
+            <app-professional-form-page />
+
+        </div>
+
+    </div>
+
+</div>
+
+}
+
+
+<!-- ====================================================== -->
+<!-- ANNUAIRE DES PROFESSIONNELS -->
+<!-- ====================================================== -->
+
+@else {
+
+<article class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+
+    <!-- ================================================== -->
+    <!-- EN-TÊTE -->
+    <!-- ================================================== -->
+
+    <div
+        class="flex flex-col gap-4 border-b border-gray-200 bg-gray-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+
+        <div>
+
+            <h2 class="text-lg font-bold text-gray-900">
+                Annuaire des professionnels
+            </h2>
+
+            <p class="mt-1 text-sm text-gray-500">
+                Contrôlez les profils visibles sur la plateforme.
+            </p>
+
+        </div>
+
+
+        <span
+            class="inline-flex w-fit items-center rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
+
+            {{ activeProfessionalsCount }} profils actifs
+
+        </span>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- ERREUR -->
+    <!-- ================================================== -->
+
+    @if (errorMessage && !editingProfessional) {
+
+    <div
+        class="mx-5 mt-5 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+
+        <span>
+            {{ errorMessage }}
+        </span>
+
+
+        <button type="button" class="cursor-pointer font-semibold underline hover:no-underline"
+            (click)="loadProfessionals()">
+
+            Réessayer
+
+        </button>
+
+    </div>
+
+    }
+
+
+    <!-- ================================================== -->
+    <!-- SUCCÈS -->
+    <!-- ================================================== -->
+
+    @if (successMessage && !editingProfessional) {
+
+    <div class="mx-5 mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+
+        {{ successMessage }}
+
+    </div>
+
+    }
+
+
+    <!-- ================================================== -->
+    <!-- CHARGEMENT -->
+    <!-- ================================================== -->
+
+    @if (loading) {
+
+    <div class="flex items-center justify-center px-6 py-12">
+
+        <div class="flex items-center gap-3 text-sm font-medium text-gray-500">
+
+            <span class="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-green-700">
+            </span>
+
+            Chargement des professionnels...
+
+        </div>
+
+    </div>
+
+    }
+
+
+    <!-- ================================================== -->
+    <!-- TABLEAU -->
+    <!-- ================================================== -->
+
+    @if (!loading && !errorMessage) {
+
+    <div class="overflow-x-auto">
+
+        <div class="min-w-[760px]">
+
+
+            <!-- HEADER -->
+
+            <div
+                class="grid grid-cols-[2fr_1.5fr_1.2fr_110px] gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500">
+
+                <span>
+                    Professionnel
+                </span>
+
+                <span>
+                    Spécialité
+                </span>
+
+                <span>
+                    Statut
+                </span>
+
+                <span class="text-right">
+                    Action
+                </span>
+
+            </div>
+
+
+            <!-- ================================================== -->
+            <!-- LIGNES -->
+            <!-- ================================================== -->
+
+            @for (
+            professional of professionals;
+            track professional.id
+            ) {
+
+            <div
+                class="grid grid-cols-[2fr_1.5fr_1.2fr_110px] items-center gap-4 border-b border-gray-100 px-5 py-4 transition last:border-b-0 hover:bg-gray-50">
+
+
+                <!-- PROFESSIONNEL -->
+
+                <div class="min-w-0">
+
+                    <p class="truncate text-sm font-semibold text-gray-900">
+
+                        {{ professional.name }}
+
+                    </p>
+
+                    <p class="mt-1 truncate text-xs text-gray-500">
+
+                        {{ professional.email }}
+
+                    </p>
+
+                </div>
+
+
+                <!-- SPÉCIALITÉ -->
+
+                <div class="truncate text-sm text-gray-700">
+
+                    {{ professional.specialty }}
+
+                </div>
+
+
+                <!-- STATUT -->
+
+                <div>
+
+                    @if (
+                    professional.status?.toLowerCase() === 'approved' ||
+                    professional.status?.toLowerCase() === 'active'
+                    ) {
+
+                    <span
+                        class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+
+                        <span class="h-1.5 w-1.5 rounded-full bg-green-600"></span>
+
+                        {{ getStatusLabel(professional.status) }}
+
+                    </span>
+
+                    } @else if (
+                    professional.status?.toLowerCase() === 'pending'
+                    ) {
+
+                    <span
+                        class="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-700">
+
+                        <span class="h-1.5 w-1.5 rounded-full bg-yellow-500"></span>
+
+                        {{ getStatusLabel(professional.status) }}
+
+                    </span>
+
+                    } @else {
+
+                    <span
+                        class="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
+
+                        <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>
+
+                        {{ getStatusLabel(professional.status) }}
+
+                    </span>
+
+                    }
+
+                </div>
+
+
+                <!-- ACTION -->
+
+                <div class="text-right">
+
+                    <button type="button"
+                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-50 hover:text-green-800"
+                        (click)="editProfessional(professional)">
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+
+                        </svg>
+
+                        Modifier
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            }
+
+
+            <!-- ================================================== -->
+            <!-- AUCUN PROFESSIONNEL -->
+            <!-- ================================================== -->
+
+            @if (professionals.length === 0) {
+
+            <div class="px-6 py-12 text-center">
+
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2">
+
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+
+                    </svg>
+
+                </div>
+
+                <p class="mt-4 text-sm font-semibold text-gray-700">
+                    Aucun professionnel enregistré.
+                </p>
+
+                <p class="mt-1 text-sm text-gray-500">
+                    Les professionnels enregistrés apparaîtront ici.
+                </p>
+
+            </div>
+
+            }
+
+        </div>
+
+    </div>
+
+    }
+
+</article>
+
+}
+
+
+<!-- ====================================================== -->
+<!-- MODAL DE MODIFICATION -->
+<!-- ====================================================== -->
+
+@if (editingProfessional && selectedProfessional) {
+
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-950/60 p-4 backdrop-blur-sm" role="dialog"
+    aria-modal="true" aria-labelledby="edit-professional-title">
+
+
+    <!-- ================================================== -->
+    <!-- CONTENEUR MODAL -->
+    <!-- ================================================== -->
+
+    <div class="flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+
+
+        <!-- ================================================== -->
+        <!-- HEADER MODAL -->
+        <!-- ================================================== -->
+
+        <div
+            class="flex shrink-0 items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+
+            <div>
+
+                <p class="text-xs font-bold uppercase tracking-wider text-green-700">
+                    Administration
+                </p>
+
+                <h2 id="edit-professional-title" class="mt-1 text-xl font-bold text-gray-900">
+
+                    Modifier le professionnel
+
+                </h2>
+
+                <p class="mt-1 text-sm text-gray-500">
+
+                    Modifiez les informations du profil professionnel.
+
+                </p>
+
+            </div>
+
+
+            <!-- FERMER -->
+
+            <button type="button" (click)="cancelEdit()" [disabled]="saving"
+                class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Fermer">
+
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+
+                </svg>
+
+            </button>
+
+        </div>
+
+
+        <!-- ================================================== -->
+        <!-- CORPS MODAL -->
+        <!-- ================================================== -->
+
+        <div class="overflow-y-auto px-5 py-5 sm:px-6">
+
+
+            <!-- ERREUR -->
+
+            @if (errorMessage) {
+
+            <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+
+                {{ errorMessage }}
+
+            </div>
+
+            }
+
+
+            <!-- SUCCÈS -->
+
+            @if (successMessage) {
+
+            <div
+                class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+
+                {{ successMessage }}
+
+            </div>
+
+            }
+
+
+            <!-- ================================================== -->
+            <!-- FORMULAIRE -->
+            <!-- ================================================== -->
+
+            <form class="space-y-6" (ngSubmit)="saveProfessional()">
+
+
+                <!-- INFORMATIONS -->
+
+                <div>
+
+                    <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-gray-700">
+
+                        Informations professionnelles
+
+                    </h3>
+
+
+                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+
+                        <!-- NOM -->
+
+                        <div>
+
+                            <label for="professional-name" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Nom complet
+
+                            </label>
+
+                            <input id="professional-name" type="text" name="name"
+                                [(ngModel)]="selectedProfessional.name" required
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                                placeholder="Nom complet">
+
+                        </div>
+
+
+                        <!-- EMAIL -->
+
+                        <div>
+
+                            <label for="professional-email" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Adresse e-mail
+
+                            </label>
+
+                            <input id="professional-email" type="email" name="email"
+                                [(ngModel)]="selectedProfessional.email" required
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                                placeholder="adresse@email.com">
+
+                        </div>
+
+
+                        <!-- SPÉCIALITÉ -->
+
+                        <div>
+
+                            <label for="professional-specialty" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Spécialité
+
+                            </label>
+
+                            <input id="professional-specialty" type="text" name="specialty"
+                                [(ngModel)]="selectedProfessional.specialty" required
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                                placeholder="Ex. Droit civil">
+
+                        </div>
+
+
+                        <!-- VILLE -->
+
+                        <div>
+
+                            <label for="professional-city" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Ville
+
+                            </label>
+
+                            <input id="professional-city" type="text" name="city"
+                                [(ngModel)]="selectedProfessional.city"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                                placeholder="Ville">
+
+                        </div>
+
+
+                        <!-- INSCRIPTION -->
+
+                        <div>
+
+                            <label for="professional-registration"
+                                class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Numéro d'inscription
+
+                            </label>
+
+                            <input id="professional-registration" type="text" name="registration"
+                                [(ngModel)]="selectedProfessional.registration"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                                placeholder="Numéro d'inscription">
+
+                        </div>
+
+
+                        <!-- STATUT -->
+
+                        <div>
+
+                            <label for="professional-status" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Statut
+
+                            </label>
+
+                            <select id="professional-status" name="status" [(ngModel)]="selectedProfessional.status"
+                                class="block w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100">
+
+                                <option value="pending">
+                                    En attente
+                                </option>
+
+                                <option value="approved">
+                                    Approuvé
+                                </option>
+
+                                <option value="rejected">
+                                    Refusé
+                                </option>
+
+                                <option value="suspended">
+                                    Suspendu
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ================================================== -->
+                <!-- BIO -->
+                <!-- ================================================== -->
+
+                <div class="border-t border-gray-200 pt-6">
+
+                    <label for="professional-bio" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                        Présentation
+
+                    </label>
+
+                    <textarea id="professional-bio" name="bio" rows="5" [(ngModel)]="selectedProfessional.bio"
+                        class="block w-full resize-y rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm leading-6 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                        placeholder="Présentation du professionnel..."></textarea>
+
+                </div>
+
+
+                <!-- ================================================== -->
+                <!-- IDENTIFIANTS DU PORTAIL -->
+                <!-- ================================================== -->
+
+                <div class="border-t border-gray-200 pt-6">
+
+                    <h3 class="mb-1 text-sm font-bold uppercase tracking-wide text-gray-700">
+
+                        Identifiants du portail
+
+                    </h3>
+
+                    <p class="mb-4 text-xs leading-5 text-gray-500">
+
+                        @if (selectedProfessional?.portalUsername) {
+
+                        Compte existant : <strong class="font-semibold text-gray-700">{{ selectedProfessional.portalUsername }}</strong>. Laissez vide pour conserver.
+
+                        } @else {
+
+                        Aucun compte portail pour ce profil : renseignez un identifiant et un mot de passe pour en créer un.
+
+                        }
+
+                        Ce compte donne au professionnel l'accès à SON portail uniquement
+                        (ses demandes, ses notifications) — il ne peut ni voir ni gérer les
+                        autres professionnels.
+
+                    </p>
+
+                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+
+                        <!-- IDENTIFIANT -->
+
+                        <div>
+
+                            <label for="portal-username" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Identifiant de connexion
+
+                            </label>
+
+                            <input id="portal-username" type="text" name="portalUsername"
+                                [(ngModel)]="portalUsername" autocomplete="off"
+                                [placeholder]="selectedProfessional?.portalUsername || 'Ex. nadia.martin'"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100">
+
+                        </div>
+
+
+                        <!-- MOT DE PASSE -->
+
+                        <div>
+
+                            <label for="portal-password" class="mb-2 block text-sm font-semibold text-gray-700">
+
+                                Mot de passe
+
+                            </label>
+
+                            <input id="portal-password" type="password" name="portalPassword"
+                                [(ngModel)]="portalPassword" autocomplete="new-password"
+                                placeholder="6 caractères minimum (vide = inchangé)"
+                                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ================================================== -->
+                <!-- ACTIONS -->
+                <!-- ================================================== -->
+
+                <div class="flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
+
+
+                    <!-- ANNULER -->
+
+                    <button type="button" (click)="cancelEdit()" [disabled]="saving"
+                        class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+
+                        Annuler
+
+                    </button>
+
+
+                    <!-- ENREGISTRER -->
+
+                    <button type="submit" [disabled]="saving"
+                        class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-green-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+
+                        @if (saving) {
+
+                        <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white">
+                        </span>
+
+                        Enregistrement...
+
+                        } @else {
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+
+                        </svg>
+
+                        Enregistrer les modifications
+
+                        }
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+}

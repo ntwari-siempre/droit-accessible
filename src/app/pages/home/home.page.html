@@ -1,0 +1,95 @@
+<div class="welcome-row reveal reveal-one">
+    <div>
+        <p class="eyebrow">Lundi 22 septembre 2025</p>
+        <h1>Le droit, accessible à tous <span>✦</span></h1>
+        <p class="intro">Comprenez vos droits et trouvez le professionnel adapté à votre situation, simplement.</p>
+    </div><button class="date-button" (click)="goResources()">Explorer mes droits <span>→</span></button>
+</div>
+<div class="metric-grid reveal reveal-two">
+    <article class="metric-card">
+        <div class="metric-top"><span class="metric-icon coral">◎</span><span class="trend neutral">Vérifiés</span>
+        </div>
+        <p>Professionnels référencés</p><strong>{{ referencedProfessionals }}</strong><small>Avocats et juristes disponibles</small>
+    </article>
+    <article class="metric-card">
+        <div class="metric-top"><span class="metric-icon mint">▤</span><span class="trend up">Gratuit</span></div>
+        <p>Fiches pratiques</p><strong>{{ resourcesCount }}</strong><small>Des réponses claires et utiles</small>
+    </article>
+    <article class="metric-card">
+        <div class="metric-top"><span class="metric-icon yellow">⌖</span><span class="trend neutral">Partout</span>
+        </div>
+        <p>Villes couvertes</p><strong>{{ citiesCount }}</strong><small>Consultation à distance incluse</small>
+    </article>
+    <article class="metric-card metric-accent">
+        <div class="metric-top"><span class="metric-icon dark">✓</span><span class="trend neutral">Sécurisé</span></div>
+        <p>Demandeurs accompagnés</p><strong>{{ appointmentsCount }}</strong><small>Une communauté qui avance</small>
+    </article>
+</div>
+<div class="section-heading reveal reveal-three">
+    <div>
+        <p class="eyebrow">Pour vous aujourd’hui</p>
+        <h2>Avancer en confiance</h2>
+    </div><button class="view-link" (click)="goResources()">Voir toutes les fiches <span>→</span></button>
+</div>
+<div class="home-grid reveal reveal-four">
+    <article class="panel spotlight-panel">
+        <div class="spotlight-copy"><span class="tag">Fiche recommandée</span>
+            <h2>Vous avez reçu une lettre de licenciement ?</h2>
+            <p>Découvrez les délais et les recours possibles pour défendre vos droits.</p><button class="primary-button"
+                (click)="goResources()">Lire la fiche <span>→</span></button>
+        </div>
+        <div class="spotlight-illustration"><span>⚖</span></div>
+    </article>
+    <article class="panel next-panel">
+        <div class="panel-heading">
+            <div>
+                <h2>Prochaine étape</h2>
+                <p>Votre parcours en cours</p>
+            </div><span class="step-count">1/2</span>
+        </div>
+        <div class="step-line"><span class="step-current">1</span>
+            <div><strong>Trouver un professionnel</strong><small>Choisissez un expert adapté</small></div>
+        </div>
+        <div class="step-line muted"><span>2</span>
+            <div><strong>Être recontacté</strong></div>
+        </div><button class="full-button" (click)="goProfessionals()">Trouver un professionnel
+            <span>→</span></button>
+    </article>
+</div>
+<section class="home-professionals reveal reveal-four">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Annuaire public</p>
+            <h2>Trouver le bon professionnel</h2>
+            <p class="intro">Choisissez un domaine, consultez les profils et envoyez votre demande sans créer de compte.
+            </p>
+        </div><button class="view-link" (click)="goProfessionals()">Voir l'annuaire complet
+            <span>→</span></button>
+    </div>
+    <div class="home-search"><label class="search-box"><span>⌕</span><input [(ngModel)]="search"
+                placeholder="Nom, ville ou domaine..." /></label><select [(ngModel)]="specialty"
+            class="filter-select home-filter">
+            <option [ngValue]="'Toutes les spécialités'">Toutes les spécialités</option>@for (item of
+            specialties.slice(1); track item) {<option [ngValue]="item">{{ item }}</option>}
+        </select></div>@if (loading) {<div class="panel loading-state"><span class="loading-spinner"></span>
+        <p>Chargement des professionnels...</p>
+    </div>} @else if (filteredProfessionals.length === 0) {<div class="panel empty-state"><span>⌕</span>
+        <h2>Aucun professionnel trouvé</h2>
+        <p>Essayez un autre domaine ou une autre recherche.</p>
+    </div>} @else {<div class="home-professional-grid">@for (professional of filteredProfessionals; track
+        professional.id ?? professional.name) {<article class="home-professional-card">
+            <div class="home-professional-head"><span class="large-avatar" [class]="professional.color">{{
+                    professional.initials }}</span><span class="verified">✓ Vérifié</span></div>
+            <h3>{{ professional.name }}</h3>
+            <p>{{ professional.role }}</p><strong>{{ professional.specialty }}</strong><small>⌖ {{ professional.city
+                }}</small>
+            <div class="home-professional-footer"><span>★ {{ professional.rating }}</span><button class="outline-button"
+                    (click)="book(professional.id ?? 1)">Demander un rendez-vous <span>→</span></button></div>
+        </article>}</div>}
+</section>
+<div class="bottom-grid reveal reveal-four">
+    <article class="panel quote-panel"><span class="quote-mark">“</span>
+        <p>Comprendre ses droits, c’est déjà reprendre le pouvoir.</p><span class="quote-author">Droit
+            Accessible</span><span class="paper-texture"></span>
+    </article>
+</div>

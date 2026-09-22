@@ -1,0 +1,359 @@
+<main class="min-h-screen bg-white text-[#202529] font-['Poppins',_sans-serif]">
+    <header class="fixed inset-x-0 top-0 z-[4] h-[76px] overflow-visible border-b border-[#e8eae5] bg-white">
+        <div class="mx-auto flex min-h-[76px] w-full max-w-7xl items-center gap-4 px-4 sm:px-6 md:gap-[42px]">
+
+            <button class="block border-0 bg-transparent text-[21px] text-[#818b83] cursor-pointer md:hidden"
+                aria-label="Ouvrir le menu" type="button" (click)="mobileMenuOpen = !mobileMenuOpen">
+                ☰
+            </button>
+
+            <a
+                class="group inline-flex items-center gap-[10px] min-w-0 md:min-w-[235px] text-left border-0 bg-transparent cursor-pointer p-0 text-[#202529] text-[16px] sm:text-[18px] font-bold tracking-[-1px]"
+                [routerLink]="['/home']" aria-label="Droit Accessible - Accueil">
+
+                <img class="w-[36px] h-[36px] sm:w-[42px] sm:h-[42px] object-contain transition-[transform,filter] duration-[.25s] ease-in-out [filter:drop-shadow(0_5px_8px_#c79b2d35)] group-hover:rotate-[-4deg] group-hover:scale-[1.08] group-hover:[filter:drop-shadow(0_7px_12px_#c79b2d55)]"
+                    src="justice-rmbg.png" alt="" width="42" height="42">
+
+                <span class="grid gap-px leading-[1.15]">
+                    <strong class="text-[12px] sm:text-[16px] tracking-[-0.2px]">Droit Accessible</strong>
+                    <small class="hidden md:block text-[#8b948d] text-[9px] font-medium tracking-[0.15px]">
+                        Comprendre. Agir. Être accompagné.
+                    </small>
+                </span>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-[5px] flex-1" aria-label="Navigation principale">
+                <span
+                    class="text-[#a5ada6] uppercase tracking-[0.9px] text-[8px] font-bold mr-[5px] ml-[11px] whitespace-nowrap">Explorer</span>
+
+                <a
+                    class="inline-flex items-center gap-[7px] rounded-lg border-0 bg-transparent py-[12px] px-[20px] text-[13px] font-medium cursor-pointer relative transition-colors duration-200 text-[#858d86] hover:bg-[#f1f7f3] hover:text-[#202529] data-[active]:bg-[#eef8f3] data-[active]:text-[#202529] data-[active]:font-semibold"
+                    [attr.data-active]="isActive('/home') ? '' : null" [routerLink]="['/home']">
+                    Accueil
+                </a>
+
+                <a
+                    class="inline-flex items-center gap-[7px] rounded-lg border-0 bg-transparent py-[12px] px-[20px] text-[13px] font-medium cursor-pointer relative transition-colors duration-200 text-[#858d86] hover:bg-[#f1f7f3] hover:text-[#202529] data-[active]:bg-[#eef8f3] data-[active]:text-[#202529] data-[active]:font-semibold"
+                    [attr.data-active]="isActive('/resources') ? '' : null" [routerLink]="['/resources']">
+                    Fiches pratiques
+                </a>
+
+                @if (!authenticated) {
+                <a
+                    class="inline-flex items-center gap-[7px] rounded-lg border-0 bg-transparent py-[12px] px-[20px] text-[13px] font-medium cursor-pointer relative transition-colors duration-200 text-[#858d86] hover:bg-[#f1f7f3] hover:text-[#202529] data-[active]:bg-[#eef8f3] data-[active]:text-[#202529] data-[active]:font-semibold"
+                    [attr.data-active]="isActive('/professionals') ? '' : null" [routerLink]="['/professionals']">
+                    Trouver un professionnel
+                </a>
+                }
+
+                @if (authenticated) {
+                <span class="mx-1 h-[22px] w-px bg-[#e6ebe7]" aria-hidden="true">
+                </span>
+
+                <span
+                    class="text-[#a5ada6] uppercase tracking-[0.9px] text-[8px] font-bold mr-[5px] ml-[9px] whitespace-nowrap">
+                    Mon espace
+                </span>
+
+                <a
+                    class="inline-flex items-center gap-[7px] rounded-lg border-0 bg-transparent pt-[10px] pb-[10px] px-0 text-[13px] font-medium cursor-pointer relative transition-colors duration-200 text-[#858d86] hover:bg-[#f1f7f3] hover:text-[#202529] data-[active]:bg-[#eef8f3] data-[active]:text-[#202529] data-[active]:font-semibold"
+                    [attr.data-active]="isActive('/appointments') ? '' : null" [routerLink]="['/appointments']">
+
+                    <span class="text-[15px] text-[#55a17d]">◷</span>
+                    Mes rendez-vous
+                </a>
+
+                <a
+                    class="inline-flex items-center gap-[7px] rounded-lg border-0 bg-transparent pt-[10px] pb-[10px] px-0 text-[13px] font-medium cursor-pointer relative transition-colors duration-200 text-[#858d86] hover:bg-[#f1f7f3] hover:text-[#202529] data-[active]:bg-[#eef8f3] data-[active]:text-[#202529] data-[active]:font-semibold"
+                    [attr.data-active]="isActive('/messages') ? '' : null" [routerLink]="['/messages']">
+
+                    <span class="text-[15px] text-[#55a17d]">⌁</span>
+                    Messagerie
+
+                    @if (notificationCount > 0) {
+                    <span class="ml-1 rounded-full bg-[#fff0eb] px-[6px] py-[2px] text-[8px] text-[#e87360]">
+                        {{ notificationCount }}
+                    </span>
+                    }
+                </a>
+                }
+            </nav>
+
+            <div class="flex items-center gap-4 ml-auto md:ml-0">
+
+                @if (authenticated) {
+
+                @if (isAdmin) {
+                <a
+                    class="flex items-center gap-2 border-0 bg-transparent text-[#4c554e] text-[10px] font-medium cursor-pointer"
+                    [routerLink]="['/admin']">
+
+                    <span
+                        class="grid h-[27px] w-[27px] place-items-center rounded-full bg-[#ffd6ce] text-[10px] font-bold text-[#d45d4d]">
+                        {{ userInitial }}
+                    </span>
+
+                    <span class="hidden sm:inline">Administration</span>
+                    <span class="hidden sm:inline">⌄</span>
+                </a>
+                } @else {
+                <a
+                    class="flex items-center gap-2 border-0 bg-transparent text-[#4c554e] text-[10px] font-medium cursor-pointer"
+                    [routerLink]="['/portail']">
+
+                    <span
+                        class="grid h-[27px] w-[27px] place-items-center rounded-full bg-[#ffe9c7] text-[10px] font-bold text-[#b07a1f]">
+                        {{ userInitial }}
+                    </span>
+
+                    <span class="hidden sm:inline">Mon portail</span>
+                    <span class="hidden sm:inline">⌄</span>
+                </a>
+                }
+
+                <button type="button" class="border-0 bg-transparent text-[19px] text-[#818b83] cursor-pointer"
+                    aria-label="Se déconnecter" (click)="logout()">
+                    ↪
+                </button>
+
+                } @else {
+
+                <button type="button"
+                    class="border-0 rounded-[5px] bg-[#202a2e] px-[13px] py-[10px] text-[10px] font-semibold text-white cursor-pointer"
+                    (click)="professionalLoginOpen = true">
+
+                    Espace professionnels
+                    <span class="ml-2 text-[#f87863]">→</span>
+                </button>
+
+                }
+
+            </div>
+        </div>
+
+        @if (mobileMenuOpen) {
+
+        <nav
+            class="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-2 gap-x-2 rounded-b-2xl border border-t-0 border-[#e5ebe7] bg-white px-4 pb-3 pt-2 shadow-[0_18px_32px_#202a2e1c]">
+
+            <p
+                class="col-span-2 relative z-[11] mt-2 px-3 pb-[3px] pt-2 text-[8px] font-bold uppercase tracking-[1px] text-[#a5ada6]">
+                Explorer
+            </p>
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="go('/home'); mobileMenuOpen = false">
+                Accueil
+            </button>
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="go('/resources'); mobileMenuOpen = false">
+                Fiches pratiques
+            </button>
+
+            @if (!authenticated) {
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="go('/professionals'); mobileMenuOpen = false">
+                Trouver un professionnel
+            </button>
+
+            }
+
+            @if (authenticated) {
+
+            <p
+                class="col-span-2 relative z-[11] mt-2 px-3 pb-[3px] pt-2 text-[8px] font-bold uppercase tracking-[1px] text-[#a5ada6]">
+                Mon espace
+            </p>
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="go('/appointments'); mobileMenuOpen = false">
+                Mes rendez-vous
+            </button>
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="go('/messages'); mobileMenuOpen = false">
+                Messagerie
+            </button>
+
+            @if (isAdmin) {
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="go('/admin'); mobileMenuOpen = false">
+                Administration
+            </button>
+
+            } @else {
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="go('/portail'); mobileMenuOpen = false">
+                Mon portail
+            </button>
+
+            }
+
+            } @else {
+
+            <button type="button"
+                class="relative z-[11] flex min-h-[42px] w-full items-center rounded-lg border-0 bg-transparent px-0 py-3 text-left text-[11px] font-medium text-[#858d86] cursor-pointer hover:bg-[#eef8f3] hover:text-[#202529] focus-visible:bg-[#eef8f3] focus-visible:text-[#202529] focus-visible:outline-none"
+                (click)="professionalLoginOpen = true; mobileMenuOpen = false">
+                Connexion professionnel
+            </button>
+
+            }
+
+        </nav>
+        }
+    </header>
+
+
+    <section class="w-full pt-[76px]">
+        <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-[28px] sm:pt-[42px] pb-[60px]">
+
+            <router-outlet />
+
+        </div>
+    </section>
+
+
+    @if (booking.isOpen()) {
+    <app-appointment-form-page />
+    }
+
+
+    @if (professionalLoginOpen) {
+
+    <div class="fixed inset-0 z-[5] grid place-items-center bg-[#202a2e80] p-5" (click)="professionalLoginOpen = false">
+
+        <article
+            class="relative w-full max-w-[440px] rounded-xl bg-white p-6 sm:p-[30px] shadow-[0_20px_60px_#202a2e30]"
+            (click)="$event.stopPropagation()">
+
+            <button type="button"
+                class="absolute right-[15px] top-3 border-0 bg-transparent text-[22px] text-[#98a09a] cursor-pointer"
+                aria-label="Fermer" (click)="professionalLoginOpen = false">
+                ×
+            </button>
+
+            <span
+                class="grid h-[42px] w-[42px] place-items-center rounded-[10px] bg-[#fff0eb] text-[21px] text-[#f87863]">
+                ⌂
+            </span>
+
+            <p class="mb-[9px] text-[9px] font-semibold uppercase tracking-[1.2px] text-[#9da19c]">
+                Espace réservé
+            </p>
+
+            <h2 class="mt-3 mb-[6px] text-[20px]">
+                Connexion professionnel
+            </h2>
+
+            <p class="mb-[18px] text-[10px] leading-[1.6] text-[#909991]">
+                Connectez-vous pour gérer votre profil, vos demandes
+                et votre visibilité dans l'annuaire.
+            </p>
+
+
+            <form [formGroup]="loginForm" (ngSubmit)="login()" class="space-y-4">
+
+                <!-- Nom d'utilisateur -->
+                <label class="block text-sm font-medium text-slate-700">
+
+                    <span>
+                        Nom d'utilisateur
+                    </span>
+
+                    <input type="text" formControlName="username" placeholder="Votre identifiant"
+                        autocomplete="username"
+                        class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+
+                    @if (
+                    loginForm.controls.username.touched &&
+                    loginForm.controls.username.invalid
+                    ) {
+                    <small class="mt-1 block text-xs font-medium text-red-600">
+                        Identifiant obligatoire (3 caractères minimum).
+                    </small>
+                    }
+
+                </label>
+
+
+                <!-- Mot de passe -->
+                <div class="relative">
+
+                    <label for="password" class="block text-sm font-medium text-slate-700">
+
+                        Mot de passe
+
+                    </label>
+
+                    <input id="password" [type]="showPassword ? 'text' : 'password'" formControlName="password"
+                        placeholder="Votre mot de passe" autocomplete="current-password"
+                        class="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 pr-12 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+
+
+                    <!-- Bouton afficher / masquer -->
+                    <button type="button"
+                        class="absolute right-0 top-7 inline-flex h-10 w-12 items-center justify-center text-slate-400 transition hover:text-emerald-700 cursor-pointer"
+                        [attr.aria-label]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+                        [attr.title]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+                        (click)="togglePasswordVisibility()">
+
+                        <img [src]="showPassword ? 'visibility_off.svg' : 'visibility.svg'" class="h-5 w-5" alt=""
+                            aria-hidden="true" />
+
+                    </button>
+
+                </div>
+
+
+                <!-- Erreur de connexion -->
+                @if (loginError) {
+
+                <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+
+                    {{ loginError }}
+
+                </p>
+
+                }
+
+
+                <!-- Bouton connexion -->
+                <button type="submit"
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                    [disabled]="loginPending">
+
+                    {{ loginPending ? 'Connexion...' : 'Se connecter' }}
+
+                    <span>
+                        →
+                    </span>
+
+                </button>
+
+            </form>
+
+
+            <div
+                class="mt-7 rounded-md border border-dashed border-[#d9ddd7] p-[11px] text-center text-[9px] text-[#9aa29b]">
+                Démo :
+                <strong class="text-[#59635b]">admin</strong>
+                /
+                <strong class="text-[#59635b]">admin123</strong>
+            </div>
+
+        </article>
+
+    </div>
+    }
+</main>

@@ -1,0 +1,20 @@
+# Déploiement gratuit Render.com : un seul service Node sert l'API Express
+# ET le frontend Angular compilé (voir server/index.ts, section "Servir le
+# frontend Angular en production"). La base PostgreSQL gratuite est à créer
+# chez Neon.tech (sans expiration), puis renseignée comme variable secrète.
+services:
+  - type: web
+    name: droit-accessible
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm run server
+    healthCheckPath: /api/health
+    envVars:
+      # À renseigner lors du déploiement : URL Neon (postgresql://...?sslmode=require)
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: "22"
