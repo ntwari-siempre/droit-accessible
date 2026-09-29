@@ -91,20 +91,36 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS articles (
+  id SERIAL PRIMARY KEY,
+  professional_id INTEGER NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
+  title VARCHAR(200) NOT NULL,
+  slug VARCHAR(220) UNIQUE NOT NULL,
+  excerpt TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  category VARCHAR(80) NOT NULL DEFAULT 'droit_penal',
+  tags TEXT[] NOT NULL DEFAULT '{}',
+  published BOOLEAN NOT NULL DEFAULT false,
+  published_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
+
 
 async function initializeDatabase(): Promise<void> {
   await pool.query(schema);
-  await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS requester_email VARCHAR(180) NOT NULL DEFAULT ''; ALTER TABLE appointments ADD COLUMN IF NOT EXISTS requester_phone VARCHAR(40) NOT NULL DEFAULT '';`);
+  await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS requester_email VARCHAR(180) NOT NULL DEFAULT ''; ALTER TABLE appointments ADD COLUMN IF NOT EXISTS requester_phone VARCHAR(40) NOT NULL DEFAULT ''; `);
   /*
    * Code de suivi : remis au citoyen lors de sa demande, il donne accès à la
    * conversation liée (sans compte à créer). Les demandes existantes en
    * reçoivent un automatiquement.
    */
-  await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS access_token VARCHAR(64) UNIQUE;`);
-  await pool.query(`UPDATE appointments SET access_token = md5(random()::text || clock_timestamp()::text) WHERE access_token IS NULL;`);
+  await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS access_token VARCHAR(64) UNIQUE; `);
+  await pool.query(`UPDATE appointments SET access_token = md5(random():: text || clock_timestamp():: text) WHERE access_token IS NULL; `);
   const passwordHash = await bcrypt.hash('admin123', 10);
-  await pool.query(`INSERT INTO users (username, password_hash, role) VALUES ('admin', $1, 'admin') ON CONFLICT (username) DO NOTHING`, [passwordHash]);
+  await pool.query(`INSERT INTO users(username, password_hash, role) VALUES('admin', $1, 'admin') ON CONFLICT(username) DO NOTHING`, [passwordHash]);
   const resourceCount = await pool.query<{ count: string }>('SELECT COUNT(*) FROM resources');
   if (Number(resourceCount.rows[0].count) === 0) {
     const resources = [
@@ -190,7 +206,7 @@ app.get('/api/resources', async (_request, response) => {
 
 app.get('/api/professionals', async (request, response) => {
   const search = String(request.query.search ?? '').trim();
-  const result = await pool.query(`SELECT id, LEFT(name, 1) || SUBSTRING(name FROM POSITION(' ' IN name) + 1 FOR 1) AS initials, name, role, specialty, city, rating::text, availability FROM professionals WHERE status = 'approved' AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR specialty ILIKE '%' || $1 || '%' OR city ILIKE '%' || $1 || '%') ORDER BY name`, [search]);
+  const result = await pool.query(`SELECT id, LEFT(name, 1) || SUBSTRING(name FROM POSITION(' ' IN name) + 1 FOR 1) AS initials, name, role, specialty, city, rating:: text, availability FROM professionals WHERE status = 'approved' AND($1 = '' OR name ILIKE '%' || $1 || '%' OR specialty ILIKE '%' || $1 || '%' OR city ILIKE '%' || $1 || '%') ORDER BY name`, [search]);
   response.json(result.rows);
 });
 
@@ -297,7 +313,7 @@ app.post('/api/appointments', async (request, response) => {
   try {
     await client.query('BEGIN');
     const appointment = await client.query('INSERT INTO appointments (professional_id, requester_name, requester_email, requester_phone, requested_date, message, access_token) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, status, access_token AS "accessToken", requested_date AS "requestedDate"', [professionalId, requesterName, requesterEmail, requesterPhone, requestedDate, message ?? '', randomBytes(16).toString('hex')]);
-    await client.query('INSERT INTO notifications (professional_id, appointment_id, title, message) VALUES ($1, $2, $3, $4)', [professionalId, appointment.rows[0].id, 'Nouvelle demande de rendez-vous', `${requesterName} souhaite vous contacter pour le ${requestedDate}.`]);
+    await client.query('INSERT INTO notifications (professional_id, appointment_id, title, message) VALUES ($1, $2, $3, $4)', [professionalId, appointment.rows[0].id, 'Nouvelle demande de rendez-vous', `${ requesterName } souhaite vous contacter pour le ${ requestedDate }.`]);
     await client.query('COMMIT');
     response.status(201).json({ ...appointment.rows[0], message: 'Demande envoyée. Le professionnel vous contactera.' });
   } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
@@ -329,7 +345,7 @@ app.post('/api/appointments/:id/messages', authenticate, async (request: AuthReq
  * demande donne accès à la conversation liée à SA demande uniquement.
  */
 app.get('/api/suivi/:token', async (request, response) => {
-  const appointment = await pool.query(`${APPOINTMENT_SELECT} WHERE a.access_token = $1`, [request.params.token]);
+  const appointment = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.access_token = $1`, [request.params.token]);
   if (!appointment.rowCount) { response.status(404).json({ message: 'Code de suivi inconnu.' }); return; }
   const row = appointment.rows[0];
   const messages = await pool.query('SELECT id, sender_role AS "senderRole", sender_name AS "senderName", content, created_at AS "createdAt" FROM chat_messages WHERE appointment_id = $1 ORDER BY created_at, id', [row.id]);
@@ -357,7 +373,7 @@ app.post('/api/suivi/:token', async (request, response) => {
   try {
     await client.query('BEGIN');
     const inserted = await client.query('INSERT INTO chat_messages (appointment_id, sender_role, sender_name, content) VALUES ($1, \'citizen\', $2, $3) RETURNING id, sender_role AS "senderRole", sender_name AS "senderName", content, created_at AS "createdAt"', [row.id, row.requester_name, trimmed]);
-    await client.query('INSERT INTO notifications (professional_id, appointment_id, title, message) VALUES ($1, $2, $3, $4)', [row.professional_id, row.id, 'Nouveau message du citoyen', `${row.requester_name} : ${trimmed.slice(0, 120)}`]);
+    await client.query('INSERT INTO notifications (professional_id, appointment_id, title, message) VALUES ($1, $2, $3, $4)', [row.professional_id, row.id, 'Nouveau message du citoyen', `${ row.requester_name } : ${ trimmed.slice(0, 120) } `]);
     await client.query('COMMIT');
     response.status(201).json(inserted.rows[0]);
   } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
@@ -372,24 +388,24 @@ const APPOINTMENT_SELECT = `SELECT a.id, a.professional_id AS "professionalId", 
 
 app.get('/api/appointments', authenticate, async (request: AuthRequest, response) => {
   if (request.user?.role === 'professional') {
-    const scoped = await pool.query(`${APPOINTMENT_SELECT} WHERE a.professional_id = $1 ORDER BY a.created_at DESC`, [request.user.professionalId ?? -1]);
+    const scoped = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.professional_id = $1 ORDER BY a.created_at DESC`, [request.user.professionalId ?? -1]);
     response.json(scoped.rows);
     return;
   }
   if (request.user?.role !== 'admin') { response.status(403).json({ message: 'Accès professionnel requis.' }); return; }
-  const result = await pool.query(`${APPOINTMENT_SELECT} ORDER BY a.created_at DESC`);
+  const result = await pool.query(`${ APPOINTMENT_SELECT } ORDER BY a.created_at DESC`);
   response.json(result.rows);
 });
 
 app.get('/api/appointments/:id', authenticate, async (request: AuthRequest, response: Response) => {
   if (request.user?.role === 'professional') {
-    const scoped = await pool.query(`${APPOINTMENT_SELECT} WHERE a.id = $1 AND a.professional_id = $2`, [request.params.id, request.user.professionalId ?? -1]);
+    const scoped = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.id = $1 AND a.professional_id = $2`, [request.params.id, request.user.professionalId ?? -1]);
     if (!scoped.rowCount) { response.status(404).json({ message: 'Demande introuvable.' }); return; }
     response.json(scoped.rows[0]);
     return;
   }
   if (request.user?.role !== 'admin') { response.status(403).json({ message: 'Accès professionnel requis.' }); return; }
-  const result = await pool.query(`${APPOINTMENT_SELECT} WHERE a.id = $1`, [request.params.id]);
+  const result = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.id = $1`, [request.params.id]);
   if (!result.rowCount) { response.status(404).json({ message: 'Demande introuvable.' }); return; }
   response.json(result.rows[0]);
 });
@@ -407,6 +423,47 @@ app.get('/api/notifications', authenticate, async (request: AuthRequest, respons
   const result = await pool.query('SELECT id, title, message, read_at AS "readAt", created_at AS "createdAt" FROM notifications WHERE read_at IS NULL ORDER BY created_at DESC');
   response.json(result.rows);
 });
+
+/* --- ARTICLES --- */
+
+/* Liste des articles publiés (public) */
+app.get('/api/articles', async (_request, response) => {
+  const { published = 'true', category, search = '' } = _request.query as {
+    published?: string;
+    category?: string;
+    search?: string;
+  };
+  
+  let query = `
+    SELECT a.id, a.title, a.slug, a.excerpt, a.category, a.tags,
+  a.published, a.published_at, a.created_at, a.updated_at,
+  p.name as professional_name, p.specialty
+    FROM articles a
+    JOIN professionals p ON p.id = a.professional_id
+    WHERE 1 = 1
+  `;
+  const params: any[] = [];
+  
+  if (published === 'true') {
+    query += ' AND a.published = true';
+  }
+  
+  if (category) {
+    query += ' AND a.category = $' + (params.length + 1);
+    params.push(category);
+  }
+  
+  if (search) {
+    query += ' AND (a.title ILIKE $' + (params.length + 1) + ' OR a.excerpt ILIKE $' + (params.length + 2) + ')';
+    params.push(`% ${ search }% `, ` % ${ search }% `);
+  }
+  
+  query += ' ORDER BY a.published_at DESC NULLS LAST, a.created_at DESC';
+  
+  const result = await pool.query(query, params);
+  response.json(result.rows);
+});
+
 
 /*
  * Marquer une demande comme traitée (ou la rouvrir) : le professionnel
@@ -441,11 +498,11 @@ interface AppointmentRow {
 
 async function findAccessibleAppointment(request: AuthRequest, id: string): Promise<AppointmentRow | null> {
   if (request.user?.role === 'professional') {
-    const scoped = await pool.query(`${APPOINTMENT_SELECT} WHERE a.id = $1 AND a.professional_id = $2`, [id, request.user.professionalId ?? -1]);
+    const scoped = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.id = $1 AND a.professional_id = $2`, [id, request.user.professionalId ?? -1]);
     return (scoped.rows[0] as AppointmentRow) ?? null;
   }
   if (request.user?.role !== 'admin') { return null; }
-  const result = await pool.query(`${APPOINTMENT_SELECT} WHERE a.id = $1`, [id]);
+  const result = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.id = $1`, [id]);
   return (result.rows[0] as AppointmentRow) ?? null;
 }
 
@@ -470,7 +527,7 @@ if (fs.existsSync(frontendRoot)) {
 app.use((error: Error, _request: Request, response: Response, _next: NextFunction) => { console.error(error); response.status(500).json({ message: 'Erreur interne du serveur.' }); });
 
 initializeDatabase().then(() => app.listen(port, () => console.log(`API Droit Accessible: http://localhost:${port}`))).catch((error) => {
-  console.error('Impossible de démarrer PostgreSQL. Vérifiez DATABASE_URL dans server/.env.');
-  console.error(`Détail PostgreSQL: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
+console.error('Impossible de démarrer PostgreSQL. Vérifiez DATABASE_URL dans server/.env.');
+console.error(`Détail PostgreSQL: ${error instanceof Error ? error.message : String(error)}`);
+process.exit(1);
 });
