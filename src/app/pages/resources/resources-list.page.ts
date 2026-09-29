@@ -10,10 +10,21 @@ export class ResourcesListPage implements OnInit {
   private readonly router = inject(Router);
   private readonly changeDetector = inject(ChangeDetectorRef);
   protected search = '';
+  protected selectedCategory = 'Tout';
+  protected categories: string[] = ['Tout'];
   protected resources: Resource[] = [];
 
-  ngOnInit(): void { this.api.getResources().subscribe({ next: (items) => { this.resources = items as Resource[]; this.changeDetector.detectChanges(); }, error: () => this.changeDetector.detectChanges() }); }
-  protected get filtered(): Resource[] { const search = this.search.toLowerCase().trim(); return search ? this.resources.filter((item) => `${item.title} ${item.category}`.toLowerCase().includes(search)) : this.resources; }
+  ngOnInit(): void {
+    this.api.getResources().subscribe({ next: (items) => { this.resources = items as Resource[]; this.categories = ['Tout', ...new Set(this.resources.map((item) => item.category))]; this.changeDetector.detectChanges(); }, error: () => this.changeDetector.detectChanges() });
+  }
+  /** Filtre par categorie (pastilles) : 'Tout' re-affiche la liste complete. */
+  protected selectCategory(category: string): void { this.selectedCategory = category; }
+  protected get filtered(): Resource[] {
+    let items = this.selectedCategory === 'Tout' ? this.resources : this.resources.filter((item) => item.category === this.selectedCategory);
+    const search = this.search.toLowerCase().trim();
+    if (search) { items = items.filter((item) => `${item.title} ${item.category}`.toLowerCase().includes(search)); }
+    return items;
+  }
 
   /** « Lire la suite » : ouvre la fiche complète dans son composant dédié. */
   protected open(resource: Resource): void {

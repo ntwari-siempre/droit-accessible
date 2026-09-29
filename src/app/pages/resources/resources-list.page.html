@@ -4,16 +4,15 @@
     <p>Des réponses claires et accessibles pour mieux comprendre vos droits.</p>
 </div>
 <div class="search-row reveal reveal-two"><label class="search-box"><span>⌕</span><input [(ngModel)]="search"
-            placeholder="Rechercher une question, un thème..." /></label><button class="filter-button">Toutes les
-        catégories <span>⌄</span></button></div>
-<div class="category-strip reveal reveal-two"><button class="category-pill selected">Tout</button><button
-        class="category-pill">Travail</button><button class="category-pill">Logement</button><button
-        class="category-pill">Famille</button><button class="category-pill">Consommation</button></div>
-<div class="resource-grid reveal reveal-three">@for (resource of filtered; track resource.title) {<article
+            placeholder="Rechercher une question, un thème..." /></label></div>
+<div class="category-strip reveal reveal-two">@for (category of categories; track category) {<button type="button" class="category-pill" [class.selected]="selectedCategory === category" (click)="selectCategory(category)">{{ category }}</button>}</div>
+<div class="resource-grid reveal reveal-three">@for (resource of filtered; track resource.id) {<article
         class="resource-card">
         <div class="resource-top"><span class="resource-icon" [class]="resource.color">▤</span><span
                 class="read-time">{{ resource.readTime }} de lecture</span></div><span class="resource-category">{{
             resource.category }}</span>
         <h2>{{ resource.title }}</h2>
-        <p>{{ resource.description }}</p><button class="text-button" type="button" (click)="open(resource)">Lire la suite <span>→</span></button>
+        <p>{{ resource.description }}</p><button class="text-button" type="button" (click)="open(resource)">Lire la
+            suite <span>→</span></button>
     </article>}</div>
+@if (filtered.length === 0) {<div class="panel empty-state"><span>&#8981;</span><h2>Aucune ressource trouv&#233;e</h2><p>Essayez une autre cat&#233;gorie ou une autre recherche.</p></div>}
