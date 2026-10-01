@@ -28,10 +28,12 @@ export class HomePage implements OnInit {
 	protected specialty = 'Toutes les spécialités';
 	protected loading = true;
 	/* Compteurs du tableau de bord, alimentés par l'endpoint /api/stats (COUNT SQL). */
-	protected referencedProfessionals = 0;
-	protected resourcesCount = 0;
-	protected citiesCount = 0;
-	protected appointmentsCount = 0;
+	public referencedProfessionals = 0;
+	public resourcesCount = 0;
+	public citiesCount = 0;
+	public appointmentsCount = 0;
+
+	private currentDate = new Date();
 
 	ngOnInit(): void {
 		/* Statistiques de la base : source unique de vérité du tableau de bord. */
@@ -45,6 +47,7 @@ export class HomePage implements OnInit {
 				this.changeDetector.detectChanges();
 			},
 			error: () => this.changeDetector.detectChanges()
+			
 		});
 		this.api.getProfessionals().subscribe({
 			next: (items) => {
@@ -54,10 +57,13 @@ export class HomePage implements OnInit {
 			},
 			error: () => { this.loading = false; this.changeDetector.detectChanges(); }
 		});
+
+		this.changeDetector.detectChanges();
 	}
 
 	protected get specialties(): string[] {
 		return ['Toutes les spécialités', ...new Set(this.professionals.map((item) => item.specialty))];
+		this.changeDetector.detectChanges();
 	}
 
 	protected get filteredProfessionals(): Professional[] {
@@ -67,5 +73,19 @@ export class HomePage implements OnInit {
 			const matchesSpecialty = this.specialty === 'Toutes les spécialités' || professional.specialty === this.specialty;
 			return matchesSearch && matchesSpecialty;
 		});
+
+		this.changeDetector.detectChanges();
+	}
+
+
+	get formattedDate(): string {
+		const date = new Intl.DateTimeFormat('fr-FR', {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		}).format(this.currentDate);
+
+		return date.charAt(0).toUpperCase() + date.slice(1);
 	}
 }

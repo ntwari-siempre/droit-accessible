@@ -30,7 +30,7 @@ Neon.tech — PostgreSQL gratuit (tables créées automatiquement au 1er démarr
 
 | Zone (repère dans le fichier) | Rôle | Quand le modifier |
 |---|---|---|
-| `const schema` | Création des tables : `users`, `professionals`, `resources`, `appointments`, `notifications`, `chat_messages` | Ajouter un champ/une table |
+| `const schema` | Création des tables : `users`, `professionals`, `resources`, `appointments`, `notifications` | Ajouter un champ/une table |
 | `initializeDatabase()` | Seed auto : admin `admin/admin123`, 4 fiches, 3 professionnels de démo, codes de suivi | Changer les données de démo |
 | `GET /api/health` | Sonde de santé (utilisée par Render) | Rarement |
 | `POST /api/auth/login` | Connexion (JWT 8 h, rôles `admin` / `professional`) | Durée de session, règles |
@@ -40,8 +40,8 @@ Neon.tech — PostgreSQL gratuit (tables créées automatiquement au 1er démarr
 | `GET /api/professionals/me` | Profil du pro connecté (portail) | — |
 | `GET/PUT /api/admin/professionals...` | Gestion admin + création des identifiants de portail | — |
 | `POST /api/appointments` | Demande de RDV → génère le **code de suivi** (`access_token`) + notification | Formulaire demandeur |
-| `GET/POST /api/appointments/:id/messages` | **Chat côté professionnel/admin** | — |
-| `GET/POST /api/suivi/:token` | **Chat du justiciable SANS compte** (via son code) | — |
+| _(supprimé : messagerie)_ | La messagerie a été retirée du projet (page, API et table `chat_messages`) | — |
+| `GET /api/suivi/:token` | **Statut de la demande** du justiciable SANS compte (via son code) | — |
 | `GET /api/notifications`, `PATCH .../status` | Notifications + demande traitée/rouverte | — |
 | Bloc `Servir le frontend Angular en production` | Statique + fallback SPA (fin du fichier) | Hébergement |
 
@@ -52,12 +52,12 @@ Neon.tech — PostgreSQL gratuit (tables créées automatiquement au 1er démarr
 | `api.service.ts` | Toutes les méthodes HTTP + types partagés | Ajouter un appel d'API |
 | `auth.service.ts` | Session (localStorage), rôles admin/pro | Durée de session côté client |
 | `app.routes.ts` | Toutes les URLs du site | Ajouter une page |
-| `app.html` / `app.css` | Squelette + styles globaux (header, chat, panneaux…) | Design |
+| `app.html` / `app.css` | Squelette + styles globaux (header, panneaux…) | Design |
 | `pages/home/` | **Dashboard public** (4 compteurs via `/api/stats`) | Nouvelle statistique |
 | `pages/resources/resources-list.*` | Liste des fiches + bouton **« Lire la suite »** (→ `/resources/:id`) | Grille, recherche |
 | `pages/resources/resource-details.*` | **Page de lecture complète** d'une fiche | Contenu enrichi par fiche |
-| `pages/messages/messages.*` | **Messagerie du professionnel** — chat par demande, **polling 5 s** (`REFRESH_INTERVAL_MS`) | Vitesse du chat |
-| `pages/suivi/suivi.*` | **Espace du justiciable sans compte** — code de suivi + chat, **polling 5 s** | Vitesse du chat |
+| _(supprimé : messagerie)_ | La page Messagerie a été retirée (avec la table `chat_messages`) | — |
+| `pages/suivi/suivi.*` | **Espace du justiciable sans compte** — code de suivi + statut de la demande | — |
 | `pages/portail/` | Espace perso du professionnel | — |
 | `pages/admin/` | Gestion des professionnels + création de comptes portail | — |
 | `pages/professionals/`, `pages/appointments/`, `pages/profile/` | Annuaire, demandes, profils | — |
@@ -103,17 +103,14 @@ La fiche apparaît aussitôt (liste + « Lire la suite »). Couleurs valides : `
 ### d) Créer un professionnel
 Via le site : compte **admin** → onglet « Professionnels » → formulaire. Il est créé avec ses identifiants de portail (username + mot de passe).
 
-### e) Régler la vitesse du chat
-Constante `REFRESH_INTERVAL_MS = 5000` dans **les deux** fichiers :
-`src/app/pages/messages/messages.page.ts` et `src/app/pages/suivi/suivi.page.ts`.
 
-### f) Voir les logs de production
-Render → service `droit-accessible` → onglet **Logs** (erreurs API, démarrages).
+### e) Rafraîchir le statut d'une demande
+La page `/suivi` charge le statut au clic sur « Ouvrir ma demande » (plus de polling automatique).
 
-### g) Rotation du secret JWT
+### f) Rotation du secret JWT
 Render → Environment → `JWT_SECRET` → *Generate new value* → Save (déconnecte toutes les sessions).
 
-### h) Sauvegarder la base
+### g) Sauvegarder la base
 Neon → projet → **Branches/Backup**, ou export local :
 ```powershell
 $env:PGPASSWORD="MOT_DE_PASSE_NEON"
@@ -167,8 +164,8 @@ pg_dump --host=ep-xxx.neon.tech --username=neondb_owner --dbname=neondb --no-own
 | `POST` | `/api/appointments` | `professional` | Créer une demande de RDV (→ code de suivi + notification) |
 | `GET` | `/api/appointments` | `professional` | Liste des demandes du professionnel |
 | `GET` | `/api/appointments/:id` | `professional` / `admin` | Détail d'une demande (scopé au pro) |
-| `GET/POST` | `/api/appointments/:id/messages` | `professional` / `admin` | Chat du professionnel |
-| `GET/POST` | `/api/suivi/:token` | Publique (via code) | Chat du justiciable sans compte |
+| _(supprimé)_ | — | — | Messagerie retirée du projet |
+| `GET` | `/api/suivi/:token` | Publique (via code) | Statut de la demande |
 | `GET` | `/api/notifications` | `professional` | Notifications non lues du professionnel |
 | `PATCH` | `/api/notifications/:id/status` | `professional` | Marquer notification comme lue |
 | `PATCH` | `/api/appointments/:id/status` | `professional` / `admin` | Traiter/rouvrir une demande |
@@ -322,16 +319,10 @@ curl http://localhost:3000/api/admin/professionals -H "Authorization: Bearer $to
 | `read_at` | TIMESTAMPTZ | NULL | Rempli quand lu |
 | `created_at` | TIMESTAMPTZ | `NOW()` | Date de création |
 
-### Table `chat_messages`
+### Table `chat_messages` — supprimée
 
-| Colonne | Type | Défaut | Description |
-|---|---|---|---|
-| `id` | SERIAL PK | — | Identifiant unique |
-| `appointment_id` | INTEGER FK CASCADE | — | Demande associée |
-| `sender_role` | VARCHAR(20) | — | `professional` ou `requester` |
-| `sender_name` | VARCHAR(160) | — | Nom de l'expéditeur |
-| `content` | TEXT | — | Message |
-| `created_at` | TIMESTAMPTZ | `NOW()` | Date de création |
+La table a été retirée du schéma et supprimée de la base (`DROP TABLE IF EXISTS`). Aucune conversation ne peut plus être échangée.
+
 ---
 
 ## 8. Procédures de test et vérification
@@ -528,77 +519,56 @@ curl -X PATCH http://localhost:3000/api/articles/1/publish `
 6. Le public peut le lire sans connexion
 
 ### Catégories disponibles
+
 ---
 
-## 15. Améliorations de la messagerie
+## 15. Messagerie — supprimée
 
-### Problèmes identifiés et solutions
+La messagerie a été entièrement retirée du projet : page `/messages`, entrées de menu,
+routes Angular, méthodes `ApiService`, endpoints `GET/POST /api/appointments/:id/messages`,
+`POST /api/suivi/:token` et table `chat_messages`.
 
-| Problème | Solution |
-|---|---|
-| Polling toutes les 5s même quand aucune conversation n'est sélectionnée | Le polling ne se déclenche que si `this.selected` existe |
-| Messages dupliqués possibles après envoi | Vérification avant mise à jour |
-| Pas d'indicateur de « en train d'écrire » | Ajout d'un `typing` indicator optionnel |
-| Erreur silencieuse sans indication utilisateur | Ajout d'un timeout et d'un retry automatique |
+La page `/suivi` affiche d.sormais uniquement le **statut** de la demande (plus de conversation).
 
-### Nouvelle logique recommandée pour `messages.page.ts`
 
-```typescript
-// Polling conditionnel : ne se lance que si une conversation est sélectionnée
-private startPolling(): void {
-  if (!this.selected) return;
-  this.stopPolling();
-  this.refreshTimer = setInterval(() => this.refresh(), REFRESH_INTERVAL_MS);
----
+## 16. Bouton « Contacter par e-mail » (professionnel -> demandeur)
 
-## 16. Contact par email professionnel → justiciable
+### Ce qui est implemente
 
-### Problème identifié
+Page **Mes rendez-vous** (`pages/appointments/`) : le bouton ouvre une modale de
+redaction (objet + message pre-remplis avec le nom et la date de la demande).
+L envoi passe par `POST /api/appointments/:id/email` :
 
-Le bouton « Contacter par email » dans la page des détails de rendez-vous ne fonctionnait pas car il n'existait pas d'endpoint backend pour envoyer des emails.
+| Etape | Fichier | Detail |
+|---|---|---|
+| Modale + logique | `pages/appointments/appointments-list.page.*` | `openEmail()`, `sendEmail()`, `sendByMailto()` |
+| Appel HTTP | `api.service.ts` | `sendAppointmentEmail(id, subject, body)` |
+| Endpoint | `server/index.ts` | `POST /api/appointments/:id/email` |
+| Transport | `server/index.ts` | `nodemailer`, cree seulement si SMTP est configure |
 
-### Solution implémentée
+Regle d acces identique a `PATCH /api/appointments/:id/status` : un professionnel
+ecrit uniquement a SES demandes, l administrateur a toutes.
 
-Ajout d'un nouvel endpoint `POST /api/appointments/:id/email` :
+### Repli sans SMTP
 
-```typescript
-app.post('/api/appointments/:id/email', authenticate, async (request: AuthRequest, response) => {
-  const { subject, body } = request.body as { subject?: string; body?: string };
-  if (!subject || !body) { response.status(400).json({ message: 'Objet et corps requis.' }); return; }
-  
-  const appointment = await pool.query(
-    'SELECT p.email as professionalEmail, a.requester_email as requesterEmail ' +
-    'FROM appointments a JOIN professionals p ON p.id = a.professional_id ' +
-    'WHERE a.id = $1', [request.params.id]
-  );
-  
-  if (!appointment.rowCount) { response.status(404).json({ message: 'Demande introuvable.' }); return; }
-  
-  // En production, utiliser un service email (Nodemailer, SendGrid, etc.)
-  // Pour le moment, retourner les informations de contact
-  response.json({
-    message: 'Formulaire de contact email prêt.',
-    debug: {
-      from: appointment.rows[0].professionalEmail,
-      to: appointment.rows[0].requesterEmail,
-      subject,
-      body
-    }
-  });
-});
+Si `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` manquent, le transport n est pas cree
+l API repond **503** et le client bascule sur un `mailto:` : le bouton fonctionne
+donc meme sans configuration, en ouvrant le logiciel de messagerie du professionnel.
+
+### Activer l envoi reel
+
+1. Creer un compte gratuit sur **brevo.com** (300 e-mails/jour).
+2. Smozle -> SMTP & API -> Generer une cle SMTP.
+3. Renseigner les variables dans `server/.env` (local) et dans Render (production) :
+
 ```
-
-### Côté frontend
-
-Ajouter un formulaire modal dans `appointment-details.page.ts` permettant au professionnel de :
-1. Saisir l'objet et le message
-2. Cliquer sur « Envoyer par email »
-3. Voir une confirmation et une copie des coordonnées du justiciable
-
-> ⚠️ En production, intégrer un service email réel (Nodemailer avec SendGrid ou Resend).
-
----
-
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=...
+SMTP_PASS=...
+MAIL_FROM=...
+```
 ## 17. Responsivité des tableaux sur mobile
 
 ### Objectif
@@ -687,25 +657,6 @@ Dans `app.css`, ajouter :
 - [ ] Article visible dans la section publique « Articles »
 - [ ] Recherche fonctionnelle (filtre par catégorie/tag)
 - [ ] Partage possible via lien direct
-}
-
-// Rafraîchissement avec gestion d'erreur explicite
-private refresh(): void {
-  if (this.sending || !this.selected) { return; }
-  this.api.getAppointments().subscribe({
-    next: (requests) => {
-      this.requests = requests;
-      const current = requests.find((r) => r.id === this.selected?.id) ?? requests[0] ?? null;
-      const changed = this.selected?.id !== current?.id;
-      if (!current) { return; }
-      this.selected = current;
-      if (changed) { this.messages = []; }
-      this.loadMessages();
-    },
-    error: () => { this.sendError = 'Connexion perdue. Réessai...'; },
-  });
-}
-```
 
 - `droit_penal` — Code pénal, infractions, sanctions
 - `droit_civil` — Droit civil, contrats, familles

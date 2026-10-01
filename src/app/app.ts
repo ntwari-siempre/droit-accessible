@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -13,7 +13,7 @@ import { AppointmentFormPage } from './pages/appointments/appointment-form.page'
   imports: [ReactiveFormsModule, RouterOutlet, RouterLink, AppointmentFormPage],
   templateUrl: './app.html',
 })
-export class App implements OnInit {
+export class App {
   private readonly api = inject(ApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly changeDetector = inject(ChangeDetectorRef);
@@ -58,7 +58,6 @@ export class App implements OnInit {
   protected loginPending = false;
   protected loginSuccess = '';
   protected showPassword = false;
-  protected notificationCount = 0;
 
   /*
    * URL courante pilotée par le Router : source unique de vérité.
@@ -78,12 +77,6 @@ export class App implements OnInit {
     username: ['', [Validators.required, Validators.minLength(3)]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
-
-  ngOnInit(): void {
-    if (this.auth.isAuthenticated()) {
-      this.refreshNotifications();
-    }
-  }
 
   /** Le lien est actif si l'URL courante pointe vers cette section (ex. /professionals/3). */
   protected isActive(prefix: string): boolean {
@@ -106,7 +99,6 @@ export class App implements OnInit {
         this.loginPending = false;
         this.auth.setSession(result.token, result.user);
         this.loginSuccess = 'Connexion réussie.';
-        this.refreshNotifications();
         /* L'administrateur gère tous les professionnels ; le professionnel
            est dirigé vers son portail strictement personnel. */
         this.router.navigateByUrl(result.user.role === 'admin' ? '/admin' : '/portail');
@@ -127,26 +119,10 @@ export class App implements OnInit {
     this.mobileMenuOpen = false;
     this.loginForm.reset();
     this.showPassword = false;
-    this.notificationCount = 0;
     this.router.navigateByUrl('/home');
   }
 
   protected togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
-  }
-
-  private refreshNotifications(): void {
-    this.api.getNotifications().subscribe({
-      next: (notifications) => {
-        this.notificationCount = notifications.length;
-        this.changeDetector.detectChanges();
-      },
-      error: (error) => {
-        if (error.status === 401) {
-          this.auth.clearSession();
-        }
-        this.changeDetector.detectChanges();
-      },
-    });
   }
 }

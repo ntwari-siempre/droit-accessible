@@ -37,6 +37,8 @@ export interface AppointmentRequest {
   createdAt: string;
   professionalName: string;
   specialty: string;
+  /** Email du professionnel (pour repondre a sa place). */
+  professionalEmail?: string;
 }
 
 @Injectable({
@@ -202,6 +204,22 @@ export class ApiService {
     );
   }
 
+  /**
+   * Envoie un e-mail au demandeur d'une demande (professionnel ou admin).
+   * 503 = SMTP non configure : l'appelant bascule sur un mailto:.
+   */
+  sendAppointmentEmail(
+    id: number,
+    subject: string,
+    body: string
+  ): Observable<unknown> {
+    return this.http.post(
+      `${ this.baseUrl }/appointments/${ id }/email`,
+      { subject, body },
+      { headers: this.authHeaders() }
+    );
+  }
+
   // =========================
   // NOTIFICATIONS
   // =========================
@@ -229,31 +247,6 @@ export class ApiService {
     );
   }
 
-  /** Conversation liée à une demande (professionnel / administrateur). */
-  getAppointmentMessages(
-    id: number
-  ): Observable<unknown[]> {
-    return this.http.get<unknown[]>(
-      `${this.baseUrl}/appointments/${id}/messages`,
-      {
-        headers: this.authHeaders()
-      }
-    );
-  }
-
-  /** Envoie un message dans la conversation d'une demande. */
-  sendAppointmentMessage(
-    id: number,
-    content: string
-  ): Observable<unknown> {
-    return this.http.post(
-      `${this.baseUrl}/appointments/${id}/messages`,
-      { content },
-      {
-        headers: this.authHeaders()
-      }
-    );
-  }
 
   // =========================
   // SUIVI PUBLIC (sans compte)
@@ -268,16 +261,6 @@ export class ApiService {
     );
   }
 
-  /** Message du citoyen dans son espace de suivi. */
-  sendSuiviMessage(
-    token: string,
-    content: string
-  ): Observable<unknown> {
-    return this.http.post(
-      `${this.baseUrl}/suivi/${encodeURIComponent(token)}`,
-      { content }
-    );
-  }
 
   // =========================
   // AUTH HEADERS

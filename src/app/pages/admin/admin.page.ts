@@ -102,7 +102,9 @@ export class AdminPage implements OnInit {
                 this.changeDetector.detectChanges();
             }
 
+
         });
+        this.changeDetector.detectChanges();
     }
 
 

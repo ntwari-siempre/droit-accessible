@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomBytes } from 'node:crypto';
 import { Pool } from 'pg';
+import nodemailer from 'nodemailer';
 
 dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
 dotenv.config();
@@ -28,6 +29,68 @@ const pool = new Pool({
   ssl: databaseUrl.includes('sslmode=') ? { rejectUnauthorized: false } : undefined,
 });
 
+/*
+ * Envoi d'e-mails au demandeur (bouton « Contacter par e-mail »). Le
+ * transport n'est cree que si les variables SMTP sont renseignees : sans
+ * elles, l'endpoint repond 503 et le client bascule sur un mailto:.
+ * Fournisseur recommande : Brevo (300 envois/jour gratuits) - SMTP keys.
+ */
+const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+const mailer = smtpConfigured
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT ?? 587),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    })
+  : null;
+const mailFrom = process.env.MAIL_FROM ?? process.env.SMTP_USER ?? 'no-reply@droit-accessible.fr';
+/*
+ * Envoi HTTP sans SMTP : une simple cle suffit.
+ *   FORMSPREE_URL : https://formspree.io/f/VOTRE_ID
+ *   WEB3FORMS_KEY : votre cle_access_key (https://web3forms.com)
+ * Renseigne en priorite FORMSPREE_URL, sinon WEB3FORMS_KEY.
+ */
+const formspreeUrl = process.env.FORMSPREE_URL?.trim() || null;
+const web3formsKey = process.env.WEB3FORMS_KEY?.trim() || null;
+const httpProvider = formspreeUrl ? 'formspree' : web3formsKey ? 'web3forms' : null;
+
+/** Envoie l'e-mail via le service HTTP configure. Renvoie false si rien n'est configure. */
+async function sendByHttpApi(to: string, subject: string, text: string, fromName: string, fromEmail: string): Promise<boolean> {
+    const payload = {
+        name: fromName,
+        email: fromEmail,
+        replyto: fromEmail,
+        _subject: subject,
+        subject,
+        message: text,
+        body: text,
+        to,
+    };
+    try {
+        if (formspreeUrl) {
+            const response = await fetch(formspreeUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+            return true;
+        }
+        if (web3formsKey) {
+            const response = await fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ access_key: web3formsKey, from_name: fromName, replyto: fromEmail, subject, message: text, to }),
+            });
+            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+            return true;
+        }
+    } catch (error) {
+        console.error('Echec de l envoi HTTP :', error instanceof Error ? error.message : error);
+    }
+    return false;
+}
 type AuthRequest = Request & { user?: { id: number; role: string; professionalId?: number | null } };
 
 app.use(cors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:4200' }));
@@ -83,14 +146,6 @@ CREATE TABLE IF NOT EXISTS notifications (
   read_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id SERIAL PRIMARY KEY,
-  appointment_id INTEGER NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
-  sender_role VARCHAR(20) NOT NULL,
-  sender_name VARCHAR(160) NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 CREATE TABLE IF NOT EXISTS articles (
   id SERIAL PRIMARY KEY,
@@ -111,6 +166,8 @@ CREATE TABLE IF NOT EXISTS articles (
 
 async function initializeDatabase(): Promise<void> {
   await pool.query(schema);
+  /* Messagerie supprimee : la table des conversations n'est plus utilisee. */
+  await pool.query('DROP TABLE IF EXISTS chat_messages;');
   await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS requester_email VARCHAR(180) NOT NULL DEFAULT ''; ALTER TABLE appointments ADD COLUMN IF NOT EXISTS requester_phone VARCHAR(40) NOT NULL DEFAULT ''; `);
   /*
    * Code de suivi : remis au citoyen lors de sa demande, il donne accès à la
@@ -119,6 +176,17 @@ async function initializeDatabase(): Promise<void> {
    */
   await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS access_token VARCHAR(64) UNIQUE; `);
   await pool.query(`UPDATE appointments SET access_token = md5(random():: text || clock_timestamp():: text) WHERE access_token IS NULL; `);
+  /*
+   * Mode(s) de consultation proposes par le professionnel (visio et/ou
+   * cabinet), separes par des virgules : alimente les filtres de l'annuaire.
+   */
+  await pool.query(`ALTER TABLE professionals ADD COLUMN IF NOT EXISTS modes TEXT NOT NULL DEFAULT 'visio,cabinet';`);
+  /*
+   * Donnees de demonstration : modes differencies pour que le filtre de
+   * l'annuaire produise un resultat visible sur une base existante.
+   */
+  await pool.query(`UPDATE professionals SET modes = 'visio,cabinet' WHERE email = 'nadia.martin@cabinet.fr'; UPDATE professionals SET modes = 'visio' WHERE email = 'karim.meziane@conseil.fr'; UPDATE professionals SET modes = 'cabinet' WHERE email = 'sophie.caron@avocat.fr';`);
+
   const passwordHash = await bcrypt.hash('admin123', 10);
   await pool.query(`INSERT INTO users(username, password_hash, role) VALUES('admin', $1, 'admin') ON CONFLICT(username) DO NOTHING`, [passwordHash]);
   const resourceCount = await pool.query<{ count: string }>('SELECT COUNT(*) FROM resources');
@@ -204,10 +272,30 @@ app.get('/api/resources', async (_request, response) => {
   response.json(result.rows);
 });
 
+/*
+ * Palette normative du secteur juridique (robe d'avocat : bleu marine,
+ * bordeaux, or, ardoise). La couleur est deduite de la specialite quand
+ * elle est connue, sinon de facon stable a partir du nom, afin qu'un meme
+ * professionnel garde la meme couleur sur toutes les pages.
+ */
+const legalPalette = ['navy', 'bordeaux', 'gold', 'slate'];
+const legalColorsBySpecialty: Record<string, string> = {
+  'Droit de la famille': 'bordeaux',
+  'Droit du travail': 'navy',
+  'Droit immobilier': 'gold'
+};
+function legalColor(name: string, specialty: string): string {
+  const known = legalColorsBySpecialty[specialty];
+  if (known) { return known; }
+  let hash = 0;
+  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) % 997;
+  return legalPalette[hash % legalPalette.length];
+}
+
 app.get('/api/professionals', async (request, response) => {
   const search = String(request.query.search ?? '').trim();
-  const result = await pool.query(`SELECT id, LEFT(name, 1) || SUBSTRING(name FROM POSITION(' ' IN name) + 1 FOR 1) AS initials, name, role, specialty, city, rating:: text, availability FROM professionals WHERE status = 'approved' AND($1 = '' OR name ILIKE '%' || $1 || '%' OR specialty ILIKE '%' || $1 || '%' OR city ILIKE '%' || $1 || '%') ORDER BY name`, [search]);
-  response.json(result.rows);
+  const result = await pool.query(`SELECT id, LEFT(name, 1) || SUBSTRING(name FROM POSITION(' ' IN name) + 1 FOR 1) AS initials, name, role, specialty, city, rating:: text, availability AS available, modes FROM professionals WHERE status = 'approved' AND($1 = '' OR name ILIKE '%' || $1 || '%' OR specialty ILIKE '%' || $1 || '%' OR city ILIKE '%' || $1 || '%') ORDER BY name`, [search]);
+  response.json(result.rows.map((row) => ({ ...row, color: legalColor(row.name, row.specialty) })));
 });
 
 app.post('/api/professionals', async (request, response) => {
@@ -319,36 +407,15 @@ app.post('/api/appointments', async (request, response) => {
   } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
 });
 
-/*
- * Conversation d'une demande de rendez-vous (professionnel / administrateur).
- */
-app.get('/api/appointments/:id/messages', authenticate, async (request: AuthRequest, response) => {
-  const appointment = await findAccessibleAppointment(request, String(request.params.id));
-  if (!appointment) { response.status(404).json({ message: 'Demande introuvable ou accès refusé.' }); return; }
-  const result = await pool.query('SELECT id, sender_role AS "senderRole", sender_name AS "senderName", content, created_at AS "createdAt" FROM chat_messages WHERE appointment_id = $1 ORDER BY created_at, id', [request.params.id]);
-  response.json(result.rows);
-});
-
-app.post('/api/appointments/:id/messages', authenticate, async (request: AuthRequest, response) => {
-  const appointment = await findAccessibleAppointment(request, String(request.params.id));
-  if (!appointment) { response.status(404).json({ message: 'Demande introuvable ou accès refusé.' }); return; }
-  const { content } = request.body as { content?: string };
-  const trimmed = (content ?? '').trim();
-  if (!trimmed) { response.status(400).json({ message: 'Le message est vide.' }); return; }
-  const senderName = request.user?.role === 'admin' ? 'Administration' : appointment.professionalName;
-  const inserted = await pool.query('INSERT INTO chat_messages (appointment_id, sender_role, sender_name, content) VALUES ($1, $2, $3, $4) RETURNING id, sender_role AS "senderRole", sender_name AS "senderName", content, created_at AS "createdAt"', [request.params.id, request.user?.role, senderName, trimmed]);
-  response.status(201).json(inserted.rows[0]);
-});
 
 /*
  * Espace de suivi du citoyen : AUCUN compte requis. Le code remis lors de la
- * demande donne accès à la conversation liée à SA demande uniquement.
+ * demande donne accès au statut de SA demande uniquement.
  */
 app.get('/api/suivi/:token', async (request, response) => {
   const appointment = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.access_token = $1`, [request.params.token]);
   if (!appointment.rowCount) { response.status(404).json({ message: 'Code de suivi inconnu.' }); return; }
   const row = appointment.rows[0];
-  const messages = await pool.query('SELECT id, sender_role AS "senderRole", sender_name AS "senderName", content, created_at AS "createdAt" FROM chat_messages WHERE appointment_id = $1 ORDER BY created_at, id', [row.id]);
   response.json({
     appointment: {
       id: row.id,
@@ -357,26 +424,8 @@ app.get('/api/suivi/:token', async (request, response) => {
       requestedDate: row.requestedDate,
       professionalName: row.professionalName,
       specialty: row.specialty
-    },
-    messages: messages.rows
+    }
   });
-});
-
-app.post('/api/suivi/:token', async (request, response) => {
-  const { content } = request.body as { content?: string };
-  const trimmed = (content ?? '').trim();
-  if (!trimmed) { response.status(400).json({ message: 'Le message est vide.' }); return; }
-  const appointment = await pool.query('SELECT id, professional_id, requester_name FROM appointments WHERE access_token = $1', [request.params.token]);
-  if (!appointment.rowCount) { response.status(404).json({ message: 'Code de suivi inconnu.' }); return; }
-  const row = appointment.rows[0];
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const inserted = await client.query('INSERT INTO chat_messages (appointment_id, sender_role, sender_name, content) VALUES ($1, \'citizen\', $2, $3) RETURNING id, sender_role AS "senderRole", sender_name AS "senderName", content, created_at AS "createdAt"', [row.id, row.requester_name, trimmed]);
-    await client.query('INSERT INTO notifications (professional_id, appointment_id, title, message) VALUES ($1, $2, $3, $4)', [row.professional_id, row.id, 'Nouveau message du citoyen', `${ row.requester_name } : ${ trimmed.slice(0, 120) } `]);
-    await client.query('COMMIT');
-    response.status(201).json(inserted.rows[0]);
-  } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
 });
 
 /*
@@ -384,7 +433,7 @@ app.post('/api/suivi/:token', async (request, response) => {
  * adressées à son propre profil (conflit marketing évité) ; l'administrateur
  * voit l'ensemble pour piloter l'annuaire.
  */
-const APPOINTMENT_SELECT = `SELECT a.id, a.professional_id AS "professionalId", a.requester_name AS "requesterName", a.requester_email AS "requesterEmail", a.requester_phone AS "requesterPhone", a.requested_date AS "requestedDate", a.message, a.status, a.access_token AS "accessToken", a.created_at AS "createdAt", p.name AS "professionalName", p.specialty FROM appointments a JOIN professionals p ON p.id = a.professional_id`;
+const APPOINTMENT_SELECT = `SELECT a.id, a.professional_id AS "professionalId", a.requester_name AS "requesterName", a.requester_email AS "requesterEmail", a.requester_phone AS "requesterPhone", a.requested_date AS "requestedDate", a.message, a.status, a.access_token AS "accessToken", a.created_at AS "createdAt", p.name AS "professionalName", p.specialty, p.email AS "professionalEmail" FROM appointments a JOIN professionals p ON p.id = a.professional_id`;
 
 app.get('/api/appointments', authenticate, async (request: AuthRequest, response) => {
   if (request.user?.role === 'professional') {
@@ -484,28 +533,68 @@ app.patch('/api/appointments/:id/status', authenticate, async (request: AuthRequ
   response.json(result.rows[0]);
 });
 
+
 /*
- * Accès d'un utilisateur authentifié à UNE demande : l'administrateur accède
- * à tout, un professionnel uniquement aux demandes adressées à son profil.
+ * Envoi d'un e-mail du professionnel / administrateur au demandeur d'une
+ * demande. Meme regle d'acces que PATCH /api/appointments/:id/status : le
+ * professionnel n'ecrit qu'a SES demandes, l'admin a toutes.
  */
-interface AppointmentRow {
-  id: number;
-  status: string;
-  requesterName: string;
-  accessToken: string | null;
-  professionalName: string;
-}
+app.post('/api/appointments/:id/email', authenticate, async (request: AuthRequest, response) => {
+  const { subject, body } = request.body as { subject?: string; body?: string };
+  const mailSubject = (subject ?? '').trim();
+  const mailBody = (body ?? '').trim();
+  if (!mailSubject || !mailBody) { response.status(400).json({ message: 'Objet et message sont requis.' }); return; }
 
-async function findAccessibleAppointment(request: AuthRequest, id: string): Promise<AppointmentRow | null> {
-  if (request.user?.role === 'professional') {
-    const scoped = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.id = $1 AND a.professional_id = $2`, [id, request.user.professionalId ?? -1]);
-    return (scoped.rows[0] as AppointmentRow) ?? null;
+  /* Recuperation scopee de la demande (et de l'email du professionnel). */
+  const target = await pool.query(
+    "SELECT a.id, a.requester_name, a.requester_email, a.professional_id, p.name AS \"professionalName\", p.email AS \"professionalEmail\" FROM appointments a JOIN professionals p ON p.id = a.professional_id WHERE a.id = $1",
+    [request.params.id]
+  );
+  if (!target.rowCount) { response.status(404).json({ message: 'Demande introuvable.' }); return; }
+  const row = target.rows[0];
+  const isOwner = row.professional_id === (request.user?.professionalId ?? -1);
+  if (request.user?.role !== 'admin' && !isOwner) {
+    response.status(403).json({ message: 'Acces professionnel requis.' });
+    return;
   }
-  if (request.user?.role !== 'admin') { return null; }
-  const result = await pool.query(`${ APPOINTMENT_SELECT } WHERE a.id = $1`, [id]);
-  return (result.rows[0] as AppointmentRow) ?? null;
-}
+  const to = (row.requester_email ?? '').trim();
+  if (!to) { response.status(400).json({ message: 'Cette demande ne comporte pas d adresse e-mail.' }); return; }
 
+		/* 1) Service HTTP (Formspree / Web3Forms) : prioritaire, une seule cle suffit. */
+		if (httpProvider) {
+			const sent = await sendByHttpApi(to, mailSubject, mailBody, row.professionalName, row.professionalEmail ?? mailFrom);
+			if (sent) {
+				console.log('E-mail envoye via le service HTTP a la demande #' + row.id);
+				response.json({ sent: true, to, provider: httpProvider });
+				return;
+			}
+			response.status(502).json({ message: 'Le service d envoi a refuse la demande. Reessayez plus tard.' });
+			return;
+		}
+
+		/* 2) Repli SMTP si un serveur a ete configure. */
+		if (!mailer) {
+			response.status(503).json({ smtp: false, message: 'Aucun service d envoi configure sur le serveur.' });
+			return;
+		}
+
+		try {
+			await mailer.sendMail({
+				from: mailFrom,
+				to,
+				replyTo: row.professionalEmail ?? undefined,
+				subject: mailSubject,
+				text: mailBody,
+			});
+			console.log('E-mail envoye par SMTP a la demande #' + row.id);
+		} catch (error) {
+			console.error('Echec de l envoi SMTP :', error instanceof Error ? error.message : error);
+			response.status(502).json({ message: 'L envoi SMTP a echoue.' });
+			return;
+		}
+		response.json({ sent: true, to, provider: `smtp` });
+  /* SMTP absent : le client bascule sur un mailto:, on ne renvoie pas une erreur brute. */
+});
 /*
  * Servir le frontend Angular en production : en hébergement gratuit tout-en-un
  * (Render), le même serveur Express expose l'application compilée

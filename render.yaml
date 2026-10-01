@@ -18,3 +18,23 @@ services:
         generateValue: true
       - key: NODE_VERSION
         value: "22"
+      # SMTP (envoi d'e-mails au demandeur) : a renseigner pour activer
+      # l'envoi reel. Sans ces variables, l'API repond 503 et le bouton
+      # « Contacter par e-mail » bascule sur un mailto:.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Envoi d'e-mails sans SMTP : une seule cle suffit.
+      - key: FORMSPREE_URL
+        sync: false
+      - key: WEB3FORMS_KEY
+        sync: false

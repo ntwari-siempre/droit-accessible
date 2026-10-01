@@ -105,6 +105,8 @@ export class PortailPage implements OnInit {
             error: () => this.loadDone()
 
         });
+
+        this.changeDetector.detectChanges();
     }
 
     protected getStatusLabel(status: string): string {

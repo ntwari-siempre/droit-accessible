@@ -5,7 +5,14 @@
 </div>
 <div class="search-row reveal reveal-two"><label class="search-box"><span>⌕</span><input [(ngModel)]="search"
             placeholder="Rechercher une question, un thème..." /></label></div>
-<div class="category-strip reveal reveal-two">@for (category of categories; track category) {<button type="button" class="category-pill" [class.selected]="selectedCategory === category" (click)="selectCategory(category)">{{ category }}</button>}</div>
+<div class="category-strip reveal reveal-two flex flex-col gap-2 sm:flex-row">
+    @for (category of categories; track category) {
+    <button type="button" class="category-pill w-full sm:w-auto" [class.selected]="selectedCategory === category"
+        (click)="selectCategory(category)">
+        {{ category }}
+    </button>
+    }
+</div>
 <div class="resource-grid reveal reveal-three">@for (resource of filtered; track resource.id) {<article
         class="resource-card">
         <div class="resource-top"><span class="resource-icon" [class]="resource.color">▤</span><span
@@ -15,4 +22,7 @@
         <p>{{ resource.description }}</p><button class="text-button" type="button" (click)="open(resource)">Lire la
             suite <span>→</span></button>
     </article>}</div>
-@if (filtered.length === 0) {<div class="panel empty-state"><span>&#8981;</span><h2>Aucune ressource trouv&#233;e</h2><p>Essayez une autre cat&#233;gorie ou une autre recherche.</p></div>}
+@if (filtered.length === 0) {<div class="panel empty-state"><span>&#8981;</span>
+    <h2>Aucune ressource trouv&#233;e</h2>
+    <p>Essayez une autre cat&#233;gorie ou une autre recherche.</p>
+</div>}

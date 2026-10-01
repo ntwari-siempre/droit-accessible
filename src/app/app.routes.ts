@@ -15,9 +15,6 @@ export const routes: Routes = [
 	{ path: 'appointments', loadComponent: () => import('./pages/appointments/appointments-list.page').then((m) => m.AppointmentsListPage) },
 	{ path: 'appointments/new', loadComponent: () => import('./pages/appointments/appointment-form.page').then((m) => m.AppointmentFormPage) },
 	{ path: 'appointments/:id', loadComponent: () => import('./pages/appointments/appointment-details.page').then((m) => m.AppointmentDetailsPage) },
-	{ path: 'messages', loadComponent: () => import('./pages/messages/messages.page').then((m) => m.MessagesPage) },
-	{ path: 'messages/new', loadComponent: () => import('./pages/messages/message-form.page').then((m) => m.MessageFormPage) },
-	{ path: 'messages/:id', loadComponent: () => import('./pages/messages/message-details.page').then((m) => m.MessageDetailsPage) },
 	/*
 	 * Espace réservé à l'administrateur : seul ce rôle voit et gère tous
 	 * les professionnels. Un professionnel connecté est renvoyé vers son

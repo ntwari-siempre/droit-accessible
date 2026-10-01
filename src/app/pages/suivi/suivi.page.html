@@ -1,7 +1,7 @@
 <div class="page-heading reveal reveal-one">
     <p class="eyebrow">Suivi sans compte</p>
     <h1>Suivre ma demande</h1>
-    <p>Saisissez le code de suivi reçu lors de votre demande de rendez-vous pour consulter la conversation avec le professionnel et lui répondre.</p>
+    <p>Saisissez le code de suivi reçu lors de votre demande de rendez-vous pour consulter le statut de votre demande et le professionnel qui la traite.</p>
 </div>
 
 <div class="reveal reveal-two" style="max-width: 560px;">
@@ -38,40 +38,6 @@
             <span class="tag mint-tag">{{ appointment.status === 'pending' ? 'En attente' : 'Traitée' }}</span>
         </div>
 
-        <div class="chat-body" style="min-height: 120px;">
-
-            <small style="display:block; margin-bottom:10px; color:#8a94a6; font-size:11px;">⚡ Conversation en direct — les réponses du professionnel apparaissent automatiquement.</small>
-
-            @if (messages.length === 0) {
-
-            <div class="chat-empty">Aucun message pour le moment. Écrivez au professionnel ci-dessous.</div>
-
-            }
-
-            @for (message of messages; track message.id) {
-
-            @if (message.senderRole === 'citizen') {
-
-            <div class="bubble user-bubble">{{ message.content }}</div>
-            <span class="chat-time user-time">{{ message.createdAt | date:'dd/MM HH:mm' }}</span>
-
-            } @else {
-
-            <div class="bubble professional-bubble"><strong class="bubble-author">{{ message.senderName }}</strong>{{ message.content }}</div>
-            <span class="chat-time">{{ message.createdAt | date:'dd/MM HH:mm' }}</span>
-
-            }
-
-            }
-
-        </div>
-
-        @if (sendError) {<div class="error-banner">{{ sendError }}</div>}
-
-        <div class="message-input">
-            <input [(ngModel)]="draft" placeholder="Écrire au professionnel..." (keyup.enter)="send()" />
-            <button type="button" (click)="send()" [disabled]="sending || !draft.trim()">↑</button>
-        </div>
 
     </article>
 
@@ -80,7 +46,7 @@
     <article class="panel admin-guide">
         <span class="modal-icon">✦</span>
         <h2>Pas encore de demande ?</h2>
-        <p>Choisissez un professionnel dans l'annuaire : la demande est gratuite et sans création de compte. Un code de suivi vous sera remis pour dialoguer.</p>
+        <p>Choisissez un professionnel dans l'annuaire : la demande est gratuite et sans création de compte. Un code de suivi vous sera remis pour suivre son avancement.</p>
         <button class="primary-button" type="button" (click)="newRequest()">Trouver un professionnel <span>→</span></button>
     </article>
 
