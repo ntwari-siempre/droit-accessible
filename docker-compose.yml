@@ -1,16 +1,18 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: droit-accessible-postgres
+  mysql:
+    image: mysql:8.0
+    container_name: droit-accessible-mysql
     restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      POSTGRES_DB: droit_accessible
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      MYSQL_DATABASE: droit_accessible
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: calvin
+      MYSQL_PASSWORD: calvin123
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - droit_accessible_data:/var/lib/postgresql/data
+      - droit_accessible_data:/var/lib/mysql
 
 volumes:
   droit_accessible_data:
